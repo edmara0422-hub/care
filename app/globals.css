@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --glow-color: rgba(255, 255, 255, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: #080808;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar invisível ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 0px; }
+::selection { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* ── Glass ───────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 0.5px solid rgba(255, 255, 255, 0.09);
+}
+.glass-bright {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Luxury glass — gradient border */
+.glass-luxury {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 1px 40px rgba(0,0,0,0.4);
+}
+
+/* Shimmer top-border */
+.shimmer-border::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+  border-radius: inherit;
+}
+
+/* ── Aurora orbs ─────────────────────────────────────────────────── */
+.care-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform, opacity;
+}
+.care-orb-1 {
+  animation: orb-float-1 22s ease-in-out infinite;
+}
+.care-orb-2 {
+  animation: orb-float-2 18s ease-in-out infinite;
+}
+.care-orb-3 {
+  animation: orb-float-3 28s ease-in-out infinite;
+}
+.care-orb-4 {
+  animation: orb-float-4 20s ease-in-out infinite;
+}
+
+@keyframes orb-float-1 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33%       { transform: translate(30px, 20px) scale(1.08); }
+  66%       { transform: translate(-20px, 30px) scale(0.95); }
+}
+@keyframes orb-float-2 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  40%       { transform: translate(-25px, 15px) scale(1.05); }
+  70%       { transform: translate(15px, -20px) scale(0.97); }
+}
+@keyframes orb-float-3 {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; }
+  50%       { transform: translateX(-50%) scale(1.15); opacity: 0.7; }
+}
+@keyframes orb-float-4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(-30px, -20px) scale(1.1); }
+}
+
+/* ── Scan line effect (used in onboarding analysis) ─────────────── */
+@keyframes scan {
+  0%   { top: 0; }
+  100% { top: 100%; }
+}
+
+/* ── Glow pulse ──────────────────────────────────────────────────── */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px currentColor; opacity: 0.7; }
+  50%       { box-shadow: 0 0 40px currentColor; opacity: 1; }
+}
+
+/* ── Breathing circle ────────────────────────────────────────────── */
+@keyframes breathe-expand {
+  0%, 100% { transform: scale(0.75); opacity: 0.5; }
+  50%       { transform: scale(1);    opacity: 1; }
+}
+
+/* ── Orbit (splash) ──────────────────────────────────────────────── */
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(90px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(90px) rotate(-360deg); }
+}
+
+/* ── Shimmer animation ───────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer-text {
+  background: linear-gradient(90deg, #ffffff40 0%, #ffffff 40%, #ffffff40 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ── Score ring ──────────────────────────────────────────────────── */
+.score-ring-good    { stroke: url(#grad-good); }
+.score-ring-medium  { stroke: url(#grad-medium); }
+.score-ring-warning { stroke: url(#grad-warning); }
+.score-ring-bad     { stroke: url(#grad-critical); }
+
+/* ── Focus ring off ──────────────────────────────────────────────── */
+input:focus  { outline: none; }
+textarea:focus { outline: none; }
+
+/* ── Cursor ──────────────────────────────────────────────────────── */
+* { cursor: default; }
+button, a, [role="button"] { cursor: pointer; }
+
+/* ── Safe area bottom ────────────────────────────────────────────── */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+
+/* ── Print / PDF export ──────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rounded-3xl, .rounded-2xl { border-radius: 12px !important; }
+}
+
+/* ── Page transition ─────────────────────────────────────────────── */
+.page-enter {
+  animation: page-in 0.35s ease forwards;
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

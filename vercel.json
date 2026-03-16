@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/remind?period=manha",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/remind?period=tarde",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/remind?period=noite",
+      "schedule": "0 23 * * *"
+    }
+  ]
+}
