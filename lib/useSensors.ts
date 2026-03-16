@@ -2,15 +2,19 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 export type SensorStatus = 'idle' | 'requesting' | 'active' | 'denied' | 'unsupported'
 
-// ─── Typing rhythm (passive — no permission needed) ─────────────────────────
+// ─── Typing rhythm (passive — no permission needed, works on iOS too) ────────
 export function useTypingRhythm() {
   const [metrics, setMetrics] = useState<{ burstScore: number; avgInterval: number; variance: number } | null>(null)
   const intervals = useRef<number[]>([])
   const lastKey = useRef(0)
+  const lastEvent = useRef(0)
 
   useEffect(() => {
-    const onKey = () => {
+    const track = () => {
       const now = Date.now()
+      // Deduplicar: keydown + input podem disparar juntos no desktop
+      if (now - lastEvent.current < 50) return
+      lastEvent.current = now
       if (lastKey.current > 0) {
         intervals.current.push(now - lastKey.current)
         if (intervals.current.length > 20) intervals.current.shift()
@@ -26,8 +30,14 @@ export function useTypingRhythm() {
       }
       lastKey.current = now
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // keydown: teclado físico e desktop
+    window.addEventListener('keydown', track)
+    // input: teclado virtual iOS/Android (evento borbulha até document)
+    document.addEventListener('input', track)
+    return () => {
+      window.removeEventListener('keydown', track)
+      document.removeEventListener('input', track)
+    }
   }, [])
 
   return metrics
@@ -121,6 +131,7 @@ export function useCameraRPPG() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animRef = useRef<number>()
   const samplesRef = useRef<number[]>([])
+  const timestampsRef = useRef<number[]>([])
   const streamRef = useRef<MediaStream>()
 
   const start = useCallback(async () => {
@@ -139,16 +150,26 @@ export function useCameraRPPG() {
         const d = ctx.getImageData(0, 0, 40, 20).data
         let g = 0
         for (let i = 0; i < d.length; i += 4) g += d[i + 1]
+        const now = Date.now()
         samplesRef.current.push(g / (d.length / 4))
+        timestampsRef.current.push(now)
         if (samplesRef.current.length > 90) samplesRef.current.shift()
+        if (timestampsRef.current.length > 90) timestampsRef.current.shift()
         if (samplesRef.current.length >= 60) {
           const s = samplesRef.current
+          const t = timestampsRef.current
           const mean = s.reduce((a, b) => a + b) / s.length
+          const std = Math.sqrt(s.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / s.length)
+          const threshold = mean + std * 0.25
           let peaks = 0
           for (let i = 1; i < s.length - 1; i++) {
-            if (s[i] > mean * 1.003 && s[i] > s[i-1] && s[i] > s[i+1]) peaks++
+            if (s[i] > threshold && s[i] > s[i-1] && s[i] > s[i+1]) peaks++
           }
-          setBpm(Math.min(120, Math.max(50, peaks * 20)))
+          const durationSec = (t[t.length - 1] - t[0]) / 1000
+          if (durationSec > 0.5 && peaks > 0) {
+            const bpm = Math.round((peaks / durationSec) * 60)
+            setBpm(Math.min(150, Math.max(40, bpm)))
+          }
         }
         animRef.current = requestAnimationFrame(sample)
       }

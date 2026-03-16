@@ -60,9 +60,19 @@ function useStreakAndStats(checkIns: CheckIn[]) {
   }, [checkIns])
 }
 
+function exportData(data: Record<string, unknown>) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `care-export-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function ProfilePage() {
   const router = useRouter()
-  const { userName, userEmail, psychProfile, checkIns, wellnessGoals, clearData } = useCareStore()
+  const { userName, userEmail, psychProfile, checkIns, wellnessGoals, clearData, sleepLogs, achievements } = useCareStore()
   const { streak, bestStreak, avgScore, totalDays } = useStreakAndStats(checkIns)
 
   const firstName = userName ? userName.split(' ')[0] : 'você'
@@ -337,6 +347,18 @@ export default function ProfilePage() {
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#404040" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 18 15 12 9 6" />
             </svg>
+          </button>
+
+          <button
+            onClick={() => exportData({ userName, userEmail, checkIns, sleepLogs, achievements, psychProfile, wellnessGoals, exportedAt: new Date().toISOString() })}
+            className="flex items-center gap-4 px-5 py-4 rounded-2xl text-left"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)' }}
+          >
+            <span className="text-xl">📤</span>
+            <div className="flex-1">
+              <p className="font-medium text-sm text-white">Exportar meus dados</p>
+              <p className="text-[11px]" style={{ color: '#404040' }}>Baixar JSON com todos os registros</p>
+            </div>
           </button>
 
           <button

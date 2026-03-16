@@ -50,6 +50,12 @@ function AreaChart({ bars, color, period }: { bars: { score: number | null; labe
 
   return (
     <div>
+      <div className="relative pl-6">
+      <div className="absolute left-0 top-0 flex flex-col justify-between pointer-events-none" style={{ height: 90 }}>
+        {['100', '50', '0'].map(v => (
+          <span key={v} className="text-[8px] leading-none" style={{ color: 'rgba(255,255,255,0.2)' }}>{v}</span>
+        ))}
+      </div>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ height: 90, display: 'block', overflow: 'visible' }}>
         <defs>
           <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
@@ -90,8 +96,9 @@ function AreaChart({ bars, color, period }: { bars: { score: number | null; labe
           </>
         )}
       </svg>
+      </div>
       {/* X labels */}
-      <div className="relative" style={{ height: 16 }}>
+      <div className="relative pl-6" style={{ height: 16 }}>
         {pts.map((p, i) => labelIdxs.has(i) ? (
           <span key={i}
             className="absolute text-[9px] capitalize transform -translate-x-1/2"

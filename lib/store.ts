@@ -78,6 +78,7 @@ export interface CareStore {
   psychProfile: PsychProfile | null
   medicationStatus: PsychProfile['medicationStatus']
   notificationsEnabled: boolean
+  lastUnlockedAchievement: string | null
 
   setUserId: (id: string | null) => void
   hydrateFromDB: (data: {
@@ -106,6 +107,7 @@ export interface CareStore {
   addBreatheSession: (session: Omit<BreatheSession, 'id' | 'timestamp'>) => void
   logSosActivation: () => void
   unlockAchievement: (id: string) => void
+  clearLastUnlockedAchievement: () => void
   clearChat: () => void
   clearData: () => void
 }
@@ -247,6 +249,7 @@ export const useCareStore = create<CareStore>()(
       detectionMethods: ['microfone', 'acelerometro', 'digitacao'],
       checkInSchedule: ['manha', 'tarde', 'noite'],
       wellnessGoals: [],
+      lastUnlockedAchievement: null,
       psychProfile: null,
       medicationStatus: null,
       notificationsEnabled: false,
@@ -337,7 +340,7 @@ export const useCareStore = create<CareStore>()(
         if (todayCount >= 3) unlock('consistency')
 
         const updatedProfile = recalculatePsychProfile(newCheckIns, s.psychProfile)
-        set({ currentScore: score, currentMood: mood, checkIns: newCheckIns, achievements: [...s.achievements, ...toUnlock], psychProfile: updatedProfile })
+        set({ currentScore: score, currentMood: mood, checkIns: newCheckIns, achievements: [...s.achievements, ...toUnlock], psychProfile: updatedProfile, ...(toUnlock.length ? { lastUnlockedAchievement: toUnlock[toUnlock.length - 1].id } : {}) })
         if (s.userId) {
           syncCheckIn(s.userId, ci)
           syncPsychProfile(s.userId, updatedProfile)
@@ -350,7 +353,7 @@ export const useCareStore = create<CareStore>()(
         const full: SleepLog = { ...log, id: Date.now().toString(), timestamp: Date.now() }
         const earned = new Set(s.achievements.map(a => a.id))
         const newAch = earned.has('first_sleep') ? [] : [{ id: 'first_sleep', unlockedAt: Date.now() }]
-        set({ sleepLogs: [full, ...s.sleepLogs].slice(0, 90), achievements: [...s.achievements, ...newAch] })
+        set({ sleepLogs: [full, ...s.sleepLogs].slice(0, 90), achievements: [...s.achievements, ...newAch], ...(newAch.length ? { lastUnlockedAchievement: 'first_sleep' } : {}) })
         if (s.userId) {
           syncSleepLog(s.userId, full)
           if (newAch.length) syncAchievements(s.userId, [...s.achievements, ...newAch])
@@ -361,7 +364,7 @@ export const useCareStore = create<CareStore>()(
         const s = get()
         if (s.achievements.find(a => a.id === id)) return
         const updated = [...s.achievements, { id, unlockedAt: Date.now() }]
-        set({ achievements: updated })
+        set({ achievements: updated, lastUnlockedAchievement: id })
         if (s.userId) syncAchievements(s.userId, updated)
       },
 
@@ -398,13 +401,14 @@ export const useCareStore = create<CareStore>()(
         const newAch = !earned.has('all_practices') && newCompleted.length >= 5
           ? [...s.achievements, { id: 'all_practices', unlockedAt: Date.now() }]
           : s.achievements
-        set({ completedPractices: newCompleted, achievements: newAch })
+        set({ completedPractices: newCompleted, achievements: newAch, ...(newAch.length > s.achievements.length ? { lastUnlockedAchievement: 'all_practices' } : {}) })
         if (s.userId) {
           syncPractice(s.userId, id)
           if (newAch.length > s.achievements.length) syncAchievements(s.userId, newAch)
         }
       },
 
+      clearLastUnlockedAchievement: () => set({ lastUnlockedAchievement: null }),
       clearChat: () => set({ chatMessages: [] }),
       clearData: () => set({ userId: null, checkIns: [], chatMessages: [], sleepLogs: [], completedPractices: [], currentScore: 50, currentMood: null }),
     }),

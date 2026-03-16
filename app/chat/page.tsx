@@ -6,7 +6,7 @@ import BottomNav from '@/components/BottomNav'
 
 const MAX_API_MESSAGES = 20
 
-const CRISIS_RE = /suicid|me matar|quero morrer|me machucar|nao aguento mais viver|não aguento mais viver/i
+const CRISIS_RE = /suicid|me matar|vou me matar|quero morrer|me machucar|nao aguento mais viver|não aguento mais viver|quero sumir|nao quero mais viver|não quero mais viver|quero acabar com tudo|quero desaparecer|sem vontade de viver|nao vale a pena viver|não vale a pena viver|tirar minha vida|acabar com minha vida/i
 
 function getQuickPrompts(patterns: string[], score: number): string[] {
   const base = ['Como estou me sentindo', 'Preciso respirar', 'Nao consigo dormir']

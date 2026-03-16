@@ -41,6 +41,20 @@ export default function SOSPage() {
 
   return (
     <div className="min-h-screen bg-[#080808] flex flex-col overflow-hidden">
+      {/* CVV flutuante — visível em todas as fases exceto entry e done */}
+      {(phase === 'breathe' || phase === 'ground' || phase === 'affirm') && (
+        <motion.a
+          href="tel:188"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed bottom-6 right-5 z-50 flex items-center gap-2 px-4 py-2 rounded-full"
+          style={{ background: 'rgba(255,68,102,0.1)', border: '0.5px solid rgba(255,68,102,0.3)' }}
+        >
+          <span className="text-sm">📞</span>
+          <span className="text-xs font-semibold" style={{ color: '#FF4466' }}>CVV 188</span>
+        </motion.a>
+      )}
+
       {/* Pulsing dark red ambient for entry, transitions to calm */}
       <motion.div
         className="pointer-events-none fixed inset-0 z-0"

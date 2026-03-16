@@ -4,6 +4,7 @@ import './globals.css'
 import CareBackground from '@/components/CareBackground'
 import AuthProvider from '@/components/AuthProvider'
 import PWASetup from '@/components/PWASetup'
+import AchievementToast from '@/components/AchievementToast'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="relative" style={{ zIndex: 1 }}>
             {children}
           </div>
+          <AchievementToast />
         </AuthProvider>
         <PWASetup />
       </body>
