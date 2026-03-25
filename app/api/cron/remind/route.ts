@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 
 webpush.setVapidDetails(
   'mailto:care@app.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? 'BG8PY7g7YJX1Ca_S7PINbzdyjLLIsrsICI191zbsfWogJMsHDQD-NIt7QV7jIt-LeFbyPnrlZwvp7OZPJN2odrk',
+  process.env.VAPID_PRIVATE_KEY ?? '2U1Pg--RttU0QWQzds7h774FN600Ukm4sDW8w6_YCe0'
 )
 
 const supabase = createClient(
