@@ -2,18 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 
-webpush.setVapidDetails(
-  'mailto:care@app.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? 'BG8PY7g7YJX1Ca_S7PINbzdyjLLIsrsICI191zbsfWogJMsHDQD-NIt7QV7jIt-LeFbyPnrlZwvp7OZPJN2odrk',
-  process.env.VAPID_PRIVATE_KEY ?? '2U1Pg--RttU0QWQzds7h774FN600Ukm4sDW8w6_YCe0'
-)
+let initialized = false
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+function init() {
+  if (initialized) return
+  webpush.setVapidDetails(
+    'mailto:care@app.com',
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  )
+  initialized = true
+}
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 export async function POST(req: NextRequest) {
+  init()
+  const supabase = getSupabase()
   try {
     const { userId, title, body, url } = await req.json()
 
