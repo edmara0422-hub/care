@@ -314,9 +314,9 @@ export default function SettingsPage() {
                 store.clearData()
                 router.replace('/')
               }}
-              className="w-full py-3 rounded-2xl text-sm font-medium"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#666' }}>
-              Sair e recomeçar
+              className="w-full py-4 rounded-2xl text-sm font-semibold"
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }}>
+              🚪 Sair e recomeçar
             </motion.button>
           </div>
         </Section>
