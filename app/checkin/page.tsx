@@ -93,6 +93,7 @@ export default function CheckInPage() {
   const [selectedTriggers, setSelectedTriggers] = useState<string[]>([])
   const [note, setNote] = useState('')
   const [step, setStep] = useState<'mood' | 'detail' | 'done'>('mood')
+  const [submitting, setSubmitting] = useState(false)
 
   const toggle = (t: string) =>
     setSelectedTriggers((p) => p.includes(t) ? p.filter((x) => x !== t) : [...p, t])
@@ -106,7 +107,8 @@ export default function CheckInPage() {
   }
 
   const submit = () => {
-    if (!mood) return
+    if (!mood || submitting) return
+    setSubmitting(true)
     const sensorData = typingMetrics ? { typingBurst: typingMetrics.burstScore } : undefined
     addCheckIn(mood, moodToScore[mood], note || undefined, selectedTriggers.length ? selectedTriggers : undefined, sensorData)
     setStep('done')
@@ -115,6 +117,7 @@ export default function CheckInPage() {
       setMood(null)
       setSelectedTriggers([])
       setNote('')
+      setSubmitting(false)
     }, 2800)
   }
 
@@ -403,13 +406,14 @@ export default function CheckInPage() {
 
               <button
                 onClick={submit}
-                className="w-full py-4 rounded-full font-semibold text-base tracking-wide transition-all"
+                disabled={submitting}
+                className="w-full py-4 rounded-full font-semibold text-base tracking-wide transition-all disabled:opacity-50"
                 style={{
                   background: 'linear-gradient(135deg, #FFFFFF 0%, #CCCCCC 100%)',
                   color: '#0A0A0A',
                 }}
               >
-                Registrar agora
+                {submitting ? 'Registrando...' : 'Registrar agora'}
               </button>
             </motion.div>
           )}
