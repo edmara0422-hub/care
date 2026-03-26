@@ -197,7 +197,7 @@ export default function ChatPage() {
   const color = scoreColor(currentScore)
 
   return (
-    <div className="h-screen flex flex-col" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' }}>
+    <div className="h-screen flex flex-col" style={{ paddingBottom: 'calc(84px + env(safe-area-inset-bottom))' }}>
       <div className="pointer-events-none fixed inset-0 z-0"
         style={{ background: `radial-gradient(ellipse 50% 30% at 50% 0%, ${color}06 0%, transparent 60%)` }} />
 
