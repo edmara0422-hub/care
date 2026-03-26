@@ -308,14 +308,16 @@ export default function SettingsPage() {
               style={{ background: 'rgba(255,68,102,0.06)', border: '1px solid rgba(255,68,102,0.18)', color: '#FF4466' }}>
               Apagar todos os dados
             </motion.button>
-            {supabase && (
-              <motion.button whileTap={{ scale: 0.97 }}
-                onClick={async () => { await supabase!.auth.signOut(); router.replace('/auth') }}
-                className="w-full py-3 rounded-2xl text-sm font-medium"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#666' }}>
-                Sair da conta
-              </motion.button>
-            )}
+            <motion.button whileTap={{ scale: 0.97 }}
+              onClick={async () => {
+                if (supabase) await supabase.auth.signOut()
+                store.clearData()
+                router.replace('/')
+              }}
+              className="w-full py-3 rounded-2xl text-sm font-medium"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#666' }}>
+              Sair e recomeçar
+            </motion.button>
           </div>
         </Section>
 
