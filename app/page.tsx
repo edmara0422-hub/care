@@ -20,11 +20,11 @@ export default function SplashPage() {
 
   useEffect(() => {
     if (!mounted || !hydrated) return
-    const t1 = setTimeout(() => setPhase(1), 300)
-    const t2 = setTimeout(() => setPhase(2), 900)
-    const t3 = setTimeout(() => setPhase(3), 1800)
-    const t4 = setTimeout(() => setPhase(4), 2500)
-    const t5 = setTimeout(() => router.replace(hasOnboarded ? '/home' : '/onboarding'), 3000)
+    const t1 = setTimeout(() => setPhase(1), 500)
+    const t2 = setTimeout(() => setPhase(2), 1500)
+    const t3 = setTimeout(() => setPhase(3), 3000)
+    const t4 = setTimeout(() => setPhase(4), 4500)
+    const t5 = setTimeout(() => router.replace(hasOnboarded ? '/home' : '/onboarding'), 5500)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5) }
   }, [mounted, hydrated, hasOnboarded, router])
 
