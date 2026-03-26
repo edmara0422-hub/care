@@ -165,37 +165,73 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 // ─── Auto-derive psychProfile from check-in history ─────────────────────────
 let _lastRecalcAt = 0
 export function recalculatePsychProfile(checkIns: CheckIn[], existing: PsychProfile | null): PsychProfile {
-  // Debounce: skip full recalculation if called within 500ms (rapid programmatic calls)
   const now = Date.now()
   if (existing && now - _lastRecalcAt < 500) return existing
   _lastRecalcAt = now
   const hasMigraine = existing?.hasMigraine ?? false
   const medicationStatus = existing?.medicationStatus ?? null
-  const recent30 = checkIns.filter(c => c.timestamp > Date.now() - 30 * 86_400_000)
+
+  const DAY_MS = 86_400_000
+  const recent30 = checkIns.filter(c => c.timestamp > now - 30 * DAY_MS)
+  const recent7  = checkIns.filter(c => c.timestamp > now - 7 * DAY_MS)
 
   if (recent30.length < 3) {
-    return existing ?? { anxietyScore: 0, depressionScore: 0, tdahScore: 0, burnoutScore: 0, stressScore: 0, detectedPatterns: ['Estado estavel'], hasMigraine, medicationStatus }
+    return existing ?? { anxietyScore: 0, depressionScore: 0, tdahScore: 0, burnoutScore: 0, stressScore: 0, detectedPatterns: ['Dados insuficientes — continue registrando'], hasMigraine, medicationStatus }
   }
 
-  const scores = recent30.map(c => c.score)
-  const mean = scores.reduce((a, b) => a + b, 0) / scores.length
-  const variance = scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length
-  const varianceNorm = Math.min(100, Math.round(Math.sqrt(variance) * 2.5))
+  // ── Métricas base ──
+  const scores30 = recent30.map(c => c.score)
+  const mean30 = scores30.reduce((a, b) => a + b, 0) / scores30.length
+  const variance30 = scores30.reduce((a, b) => a + Math.pow(b - mean30, 2), 0) / scores30.length
+  const stdDev = Math.sqrt(variance30)
+  const varianceNorm = Math.min(100, Math.round(stdDev * 2.5))
 
-  const n = Math.max(1, checkIns.length)
-  const allTriggers = checkIns.flatMap(c => c.triggers ?? [])
-  const tc = (t: string) => allTriggers.filter(x => x === t).length
-  const stressTrig = tc('Trabalho') + tc('Sobrecarga') + tc('Conflito')
-  const anxTrig    = tc('Incerteza') + tc('Sobrecarga') + tc('Redes sociais')
-  const depTrig    = tc('Solidão') + tc('Família')
+  // ── Tendência (regressão linear simples) ──
+  const xMean = (recent30.length - 1) / 2
+  let num = 0, den = 0
+  scores30.forEach((s, i) => { num += (i - xMean) * (s - mean30); den += Math.pow(i - xMean, 2) })
+  const slope = den ? num / den : 0  // positivo = melhorando
+  const declining = slope < -0.3
+  const improving = slope > 0.3
 
-  const lowMoodRate = recent30.filter(c => c.mood === 'mal' || c.mood === 'crise').length / recent30.length
-  const half = Math.floor(recent30.length / 2)
-  const olderAvg = recent30.slice(half).reduce((s, c) => s + c.score, 0) / Math.max(1, half)
-  const recentAvg = recent30.slice(0, half).reduce((s, c) => s + c.score, 0) / Math.max(1, half)
-  const declining = recentAvg < olderAvg
+  // ── Taxa de humor baixo (ponderada por recência) ──
+  const lowMoodRecent7 = recent7.length ? recent7.filter(c => c.mood === 'mal' || c.mood === 'crise').length / recent7.length : 0
+  const lowMoodRate30 = recent30.filter(c => c.mood === 'mal' || c.mood === 'crise').length / recent30.length
+  const lowMoodRate = lowMoodRecent7 * 0.6 + lowMoodRate30 * 0.4  // peso maior para dias recentes
 
-  // Within-day variance → TDAH signal
+  // ── Triggers (frequência relativa, ponderada por recência) ──
+  const triggerWeights: Record<string, number> = {}
+  recent30.forEach(c => {
+    const age = (now - c.timestamp) / DAY_MS
+    const weight = Math.max(0.3, 1 - age / 30)  // mais recente = mais peso
+    c.triggers?.forEach(t => { triggerWeights[t] = (triggerWeights[t] ?? 0) + weight })
+  })
+  const totalWeight = Object.values(triggerWeights).reduce((a, b) => a + b, 0) || 1
+  const tw = (t: string) => (triggerWeights[t] ?? 0) / totalWeight * 100
+
+  const stressTrigW = tw('Trabalho') + tw('Sobrecarga') + tw('Conflito')
+  const anxTrigW    = tw('Incerteza') + tw('Sobrecarga') + tw('Redes sociais')
+  const depTrigW    = tw('Solidão') + tw('Família')
+  const burnTrigW   = tw('Trabalho') + tw('Sobrecarga')
+
+  // ── Análise de notas (palavras-chave) ──
+  const allNotes = recent30.map(c => c.note ?? '').join(' ').toLowerCase()
+  const noteSignals = {
+    anxiety: (allNotes.match(/ansie|preocup|medo|panico|pânico|nervos|tenso|apreens/g) ?? []).length,
+    depression: (allNotes.match(/vazio|sozin|triste|chorar|desesper|sem vontade|cansad|exaust|sem energia/g) ?? []).length,
+    stress: (allNotes.match(/pressão|pressao|cobranç|cobranca|deadline|prazo|demais|sobrecarr/g) ?? []).length,
+    burnout: (allNotes.match(/exaust|esgota|não aguento|nao aguento|cansei|desist|largar tudo/g) ?? []).length,
+    tdah: (allNotes.match(/foco|concentr|esquec|distrai|procrastin|hiperfoco/g) ?? []).length,
+  }
+  const noteBoost = (key: keyof typeof noteSignals) => Math.min(20, noteSignals[key] * 5)
+
+  // ── Padrão de horários (consistência) ──
+  const hours = recent30.map(c => new Date(c.timestamp).getHours())
+  const nightCheckIns = hours.filter(h => h >= 23 || h <= 4).length
+  const nightRate = nightCheckIns / recent30.length
+  const lateNightBoost = nightRate > 0.3 ? 10 : 0  // check-ins de madrugada → sinal de insônia/ansiedade
+
+  // ── Variância intra-dia (TDAH) ──
   const dayMap: Record<string, number[]> = {}
   checkIns.forEach(c => {
     const k = new Date(c.timestamp).toDateString()
@@ -209,23 +245,59 @@ export function recalculatePsychProfile(checkIns: CheckIn[], existing: PsychProf
       }, 0) / multiDays.length
     : 0
 
-  // Typing burst (if present in recent check-ins) — fast/erratic typing = stress signal
+  // ── Typing burst ──
   const typingScores = recent30.filter(c => c.sensorData?.typingBurst !== undefined).map(c => c.sensorData!.typingBurst!)
   const typingStress = typingScores.length ? Math.round(typingScores.reduce((a, b) => a + b, 0) / typingScores.length) : 50
 
-  const anxietyScore    = Math.min(100, Math.round(varianceNorm * 0.35 + lowMoodRate * 35 + (anxTrig / n) * 30))
-  const depressionScore = Math.min(100, Math.round(lowMoodRate * 55 + (declining ? 20 : 0) + (depTrig / n) * 20 + (mean < 35 ? 15 : 0)))
-  const stressScore     = Math.min(100, Math.round(varianceNorm * 0.3 + (stressTrig / n) * 35 + lowMoodRate * 25 + (typingStress > 70 ? 10 : 0)))
-  const burnoutScore    = Math.min(100, Math.round((mean >= 25 && mean <= 55 && recent30.length >= 7 ? 40 : 0) + (stressTrig / n) * 30 + (declining ? 20 : 0)))
-  const tdahScore       = Math.min(100, Math.round(Math.sqrt(withinDayVar) * 2.8 + varianceNorm * 0.2))
+  // ── Cálculo final dos scores ──
+  const anxietyScore = Math.min(100, Math.round(
+    varianceNorm * 0.25 + lowMoodRate * 30 + anxTrigW * 0.3 + noteBoost('anxiety') + lateNightBoost
+  ))
 
+  const depressionScore = Math.min(100, Math.round(
+    lowMoodRate * 40 + (declining ? 20 : 0) + depTrigW * 0.25 + (mean30 < 35 ? 15 : mean30 < 50 ? 8 : 0) + noteBoost('depression')
+  ))
+
+  const stressScore = Math.min(100, Math.round(
+    varianceNorm * 0.2 + stressTrigW * 0.3 + lowMoodRate * 20 + (typingStress > 70 ? 12 : 0) + noteBoost('stress')
+  ))
+
+  const burnoutScore = Math.min(100, Math.round(
+    (mean30 >= 20 && mean30 <= 55 && recent30.length >= 7 ? 30 : 0)
+    + burnTrigW * 0.25
+    + (declining ? 20 : 0)
+    + (lowMoodRate > 0.4 && !improving ? 15 : 0)
+    + noteBoost('burnout')
+  ))
+
+  const tdahScore = Math.min(100, Math.round(
+    Math.sqrt(withinDayVar) * 2.5 + varianceNorm * 0.15 + noteBoost('tdah')
+    + (multiDays.length >= 3 && Math.sqrt(withinDayVar) > 10 ? 15 : 0)
+  ))
+
+  // ── Padrões detectados com contexto ──
   const detectedPatterns: string[] = []
-  if (anxietyScore    > 45) detectedPatterns.push('Ansiedade')
-  if (depressionScore > 45) detectedPatterns.push('Sinais depressivos')
-  if (burnoutScore    > 45) detectedPatterns.push('Risco de burnout')
-  if (tdahScore       > 45) detectedPatterns.push('Padrões de TDAH')
-  if (stressScore     > 45) detectedPatterns.push('Estresse elevado')
-  if (detectedPatterns.length === 0) detectedPatterns.push('Estado estavel')
+
+  if (anxietyScore > 55) detectedPatterns.push('Ansiedade elevada')
+  else if (anxietyScore > 35) detectedPatterns.push('Sinais leves de ansiedade')
+
+  if (depressionScore > 55) detectedPatterns.push('Sinais depressivos significativos')
+  else if (depressionScore > 35) detectedPatterns.push('Humor rebaixado')
+
+  if (burnoutScore > 55) detectedPatterns.push('Risco alto de burnout')
+  else if (burnoutScore > 35) detectedPatterns.push('Sinais de esgotamento')
+
+  if (tdahScore > 55) detectedPatterns.push('Padrão de desregulação atencional')
+  else if (tdahScore > 35) detectedPatterns.push('Oscilação de foco')
+
+  if (stressScore > 55) detectedPatterns.push('Estresse crônico')
+  else if (stressScore > 35) detectedPatterns.push('Estresse moderado')
+
+  if (nightRate > 0.3) detectedPatterns.push('Padrão noturno (possível insônia)')
+  if (declining) detectedPatterns.push('Tendência de queda recente')
+  if (improving) detectedPatterns.push('Tendência de melhora')
+
+  if (detectedPatterns.length === 0) detectedPatterns.push('Estado emocional equilibrado')
 
   return { anxietyScore, depressionScore, tdahScore, burnoutScore, stressScore, detectedPatterns, hasMigraine, medicationStatus }
 }

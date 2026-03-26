@@ -450,26 +450,55 @@ export default function InsightsPage() {
               >
                 <p className="text-[10px] tracking-[2px] uppercase mb-4" style={{ color: '#404040' }}>Perfil neuroemocional</p>
                 {[
-                  { label: 'Ansiedade',  score: psychProfile.anxietyScore,    color: '#7B8FF8' },
-                  { label: 'Estresse',   score: psychProfile.stressScore,     color: '#FFB800' },
-                  { label: 'Depressão',  score: psychProfile.depressionScore, color: '#FF4466' },
-                  { label: 'Burnout',    score: psychProfile.burnoutScore,    color: '#FF8C00' },
-                  { label: 'TDAH',       score: psychProfile.tdahScore,       color: '#00D4A0' },
-                ].map(({ label, score, color }) => (
-                  <div key={label} className="flex items-center gap-3 mb-3 last:mb-0">
-                    <span className="text-xs w-20 flex-shrink-0" style={{ color: '#606060' }}>{label}</span>
-                    <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${score}%` }}
-                        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                        className="h-full rounded-full"
-                        style={{ background: color, boxShadow: `0 0 6px ${color}50` }}
-                      />
+                  { label: 'Ansiedade',  score: psychProfile.anxietyScore,    color: '#7B8FF8', tip: psychProfile.anxietyScore > 55 ? 'Tente a respiração 4-7-8 ao sentir tensão' : psychProfile.anxietyScore > 35 ? 'Observe seus gatilhos de preocupação' : 'Nível saudável' },
+                  { label: 'Estresse',   score: psychProfile.stressScore,     color: '#FFB800', tip: psychProfile.stressScore > 55 ? 'Considere pausas regulares e limites claros' : psychProfile.stressScore > 35 ? 'Monitore sua carga — sinais leves' : 'Sob controle' },
+                  { label: 'Depressão',  score: psychProfile.depressionScore, color: '#FF4466', tip: psychProfile.depressionScore > 55 ? 'Busque apoio profissional — você merece cuidado' : psychProfile.depressionScore > 35 ? 'Ativação comportamental pode ajudar' : 'Humor estável' },
+                  { label: 'Burnout',    score: psychProfile.burnoutScore,    color: '#FF8C00', tip: psychProfile.burnoutScore > 55 ? 'Alerta: priorize descanso e recuperação' : psychProfile.burnoutScore > 35 ? 'Cuide do equilíbrio trabalho-descanso' : 'Energia preservada' },
+                  { label: 'TDAH',       score: psychProfile.tdahScore,       color: '#00D4A0', tip: psychProfile.tdahScore > 55 ? 'Oscilação alta — técnicas de foco podem ajudar' : psychProfile.tdahScore > 35 ? 'Alguma variação no foco' : 'Foco consistente' },
+                ].map(({ label, score, color, tip }) => (
+                  <div key={label} className="mb-4 last:mb-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-xs w-20 flex-shrink-0" style={{ color: '#606060' }}>{label}</span>
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${score}%` }}
+                          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                          className="h-full rounded-full"
+                          style={{ background: color, boxShadow: `0 0 6px ${color}50` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold w-8 text-right" style={{ color }}>{score}</span>
                     </div>
-                    <span className="text-xs font-bold w-8 text-right" style={{ color }}>{score}</span>
+                    <p className="text-[11px] ml-[calc(80px+12px)]" style={{ color: `${color}90` }}>{tip}</p>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Detected patterns with context */}
+            {psychProfile && psychProfile.detectedPatterns.length > 0 && (
+              <div className="rounded-2xl p-5 mb-5"
+                style={{ background: 'rgba(255,255,255,0.025)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] tracking-[2px] uppercase mb-4" style={{ color: '#404040' }}>O que seus dados mostram</p>
+                <div className="flex flex-col gap-2.5">
+                  {psychProfile.detectedPatterns.map((pattern, i) => {
+                    const isPositive = pattern.includes('melhora') || pattern.includes('equilibrado')
+                    const isWarning = pattern.includes('elevad') || pattern.includes('significativ') || pattern.includes('alto') || pattern.includes('crônico')
+                    return (
+                      <div key={i} className="flex items-start gap-3 px-4 py-3 rounded-xl"
+                        style={{
+                          background: isPositive ? 'rgba(0,212,160,0.06)' : isWarning ? 'rgba(255,68,102,0.06)' : 'rgba(255,255,255,0.03)',
+                          border: isPositive ? '0.5px solid rgba(0,212,160,0.15)' : isWarning ? '0.5px solid rgba(255,68,102,0.15)' : '0.5px solid rgba(255,255,255,0.06)',
+                        }}>
+                        <span className="text-sm mt-0.5">{isPositive ? '✦' : isWarning ? '⚠' : '•'}</span>
+                        <p className="text-sm font-medium" style={{
+                          color: isPositive ? '#00D4A0' : isWarning ? '#FF4466' : '#909090'
+                        }}>{pattern}</p>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
 
