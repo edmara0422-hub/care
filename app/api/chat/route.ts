@@ -1,12 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest } from 'next/server'
-
-let anthropic: Anthropic
-
-function getClient() {
-  if (!anthropic) anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  return anthropic
-}
 
 interface ChatContext {
   score: number
@@ -85,19 +77,57 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = buildSystemPrompt(context)
 
-    const stream = getClient().messages.stream({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages,
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 2048,
+        stream: true,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages,
+        ],
+      }),
     })
+
+    if (!res.ok || !res.body) {
+      const errText = await res.text().catch(() => 'unknown')
+      console.error('[chat/route] Groq error:', res.status, errText)
+      return new Response('Erro na API', { status: 502 })
+    }
 
     const readable = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder()
-        for await (const chunk of stream) {
-          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-            controller.enqueue(encoder.encode(chunk.delta.text))
+        const decoder = new TextDecoder()
+        const reader = res.body!.getReader()
+        let buffer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed.startsWith('data: ')) continue
+            const data = trimmed.slice(6)
+            if (data === '[DONE]') continue
+
+            try {
+              const json = JSON.parse(data)
+              const text = json.choices?.[0]?.delta?.content
+              if (text) controller.enqueue(encoder.encode(text))
+            } catch {
+              // skip malformed chunks
+            }
           }
         }
         controller.close()
